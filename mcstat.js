@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 const Packet = require("./Packet");
 const NetSocket = require("./NetSocket");
 const net = require("net");
