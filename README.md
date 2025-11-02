@@ -1,5 +1,5 @@
 # mcstat-cli
-Ping Minecraft servers with a lightweight, pure JavaScript command line.
+Stat Minecraft servers with a lightweight, pure JavaScript command line.
 
 ## Usage
 mcstat [options] \<address\>[:\<port\>]
@@ -18,4 +18,5 @@ mcstat [options] \<address\>[:\<port\>]
 -h | --help - shows help. Same as no args.
 
 ## License
+
 MIT
