@@ -1,6 +1,6 @@
 {
   "name": "mcstat-cli",
-  "version": "1.0.2",
+  "version": "1.0.5",
   "description": "Stat a Minecraft server with lightweight, pure JavaScript command line.",
   "keywords": [
     "minecraft",
