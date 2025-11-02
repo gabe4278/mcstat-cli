@@ -1,0 +1,18 @@
+{
+  "name": "mcstat-cli",
+  "version": "1.0.0",
+  "description": "Stat a Minecraft server with lightweight, pure JavaScript command line.",
+  "keywords": [
+    "minecraft",
+    "server",
+    "status",
+    "ping"
+  ],
+  "license": "MIT",
+  "author": "gabe4278",
+  "type": "commonjs",
+  "main": "mcstat.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}
