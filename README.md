@@ -20,8 +20,9 @@ mcstat [options] \<address\>[:\<port\>]
 <br>
 -v | --verbose - verbose log output
 <br>
--h | --help - shows help. Same as no args.
+-h | --help - shows help
 
 ## License
+
 
 MIT
