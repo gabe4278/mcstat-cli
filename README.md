@@ -1,6 +1,11 @@
 # mcstat-cli
 Stat Minecraft servers with a lightweight, pure JavaScript command line.
 
+## Install
+```bash
+npm i -g mcstat-cli
+```
+
 ## Usage
 mcstat [options] \<address\>[:\<port\>]
 
