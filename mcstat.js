@@ -283,7 +283,7 @@ if (bedrock) {
 								console.log("MOTD:");
 								console.log(mccolors(serverInfo[1], false));
 								console.log("World Name:");
-								console.log(mccolors(serverInfo[8], false));
+								console.log(mccolors(serverInfo[7], false));
 								console.log(`Ping: ${Date.now() - now} ms`)
 								if (verbose) console.log("* Closing connection");
 								socket.close();
