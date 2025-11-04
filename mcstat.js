@@ -281,9 +281,9 @@ if (bedrock) {
 								console.log(`Version: ${serverInfo[3]} (protocol version: ${serverInfo[2]})`);
 								console.log(`Game Mode: ${serverInfo[8]}`);
 								console.log("MOTD:");
-								console.log(mccolors(serverInfo[1], false));
+								console.log(mccolors(serverInfo[1], false, true));
 								console.log("World Name:");
-								console.log(mccolors(serverInfo[7], false));
+								console.log(mccolors(serverInfo[7], false, true));
 								console.log(`Ping: ${Date.now() - now} ms`)
 								if (verbose) console.log("* Closing connection");
 								socket.close();

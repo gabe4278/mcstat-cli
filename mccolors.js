@@ -1,4 +1,4 @@
-module.exports = function (text, includeAndChar) {
+module.exports = function (text, includeAndChar, parseBedrock) {
     var pre = "\u00A7";
 
     if (includeAndChar) pre = "&";
@@ -25,6 +25,20 @@ module.exports = function (text, includeAndChar) {
     text = text.replaceAll(`${pre}n`, "\x1B[4m");
     text = text.replaceAll(`${pre}o`, "\x1B[3m");
     text = text.replaceAll(`${pre}r`, "\x1B[0m");
+    if (parseBedrock) {
+        text = text.replaceAll(`${pre}g`, "\x1B[38;2;221;214;5m");
+        text = text.replaceAll(`${pre}h`, "\x1B[38;2;227;212;209m");
+        text = text.replaceAll(`${pre}i`, "\x1B[38;2;206;202;202m");
+        text = text.replaceAll(`${pre}j`, "\x1B[38;2;68;58;59m");
+        text = text.replaceAll(`${pre}m`, "\x1B[38;2;151;22;7m");
+        text = text.replaceAll(`${pre}n`, "\x1B[38;2;180;104;77m");
+        text = text.replaceAll(`${pre}p`, "\x1B[38;2;222;177;45m");
+        text = text.replaceAll(`${pre}q`, "\x1B[38;2;17;159;54m");
+        text = text.replaceAll(`${pre}s`, "\x1B[38;2;44;186;168m");
+        text = text.replaceAll(`${pre}t`, "\x1B[38;2;33;73;123m");
+        text = text.replaceAll(`${pre}u`, "\x1B[38;2;154;92;198m");
+        text = text.replaceAll(`${pre}v`, "\x1B[38;2;235;114;20m");
+    }
 
     return text + "\x1B[0m";
 }
