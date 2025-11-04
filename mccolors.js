@@ -22,7 +22,7 @@ module.exports = function (text, includeAndChar, parseBedrock) {
     text = text.replaceAll(`${pre}k`, "\x1B[6m");
     text = text.replaceAll(`${pre}l`, "\x1B[1m");
     text = text.replaceAll(`${pre}m`, "\x1B[9m");
-    text = text.replaceAll(`${pre}n`, "\x1B[4m");
+    if (!parseBedrock) text = text.replaceAll(`${pre}n`, "\x1B[4m");
     text = text.replaceAll(`${pre}o`, "\x1B[3m");
     text = text.replaceAll(`${pre}r`, "\x1B[0m");
     if (parseBedrock) {
