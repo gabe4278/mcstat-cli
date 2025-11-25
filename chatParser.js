@@ -87,11 +87,7 @@ function parseContent(textComponent) {
             text += content;
             cont = false;
         }
-        if (textComponent.extra) {
-            cont = true;
-            for (let c of textComponent.extra) text += parseContent(c);
-            cont = false;
-        }
+        if (textComponent.extra) for (let c of textComponent.extra) text += parseContent(c);
     }
     for (let i in formatSymbol) text = text.replaceAll(formatSymbol[i], format[i]);
     for (let i in colorsByFormat) text = text.replaceAll(colorsByFormat[i], colors[i]);
