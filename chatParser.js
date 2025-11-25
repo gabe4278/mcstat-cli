@@ -93,8 +93,8 @@ function parseContent(textComponent) {
             cont = false;
         }
     }
-    for (let i in formatSymbol) text = text.replace(formatSymbol[i], format[i]);
-    for (let i in colorsByFormat) text = text.replace(colorsByFormat[i], colors[i]);
+    for (let i in formatSymbol) text = text.replaceAll(formatSymbol[i], format[i]);
+    for (let i in colorsByFormat) text = text.replaceAll(colorsByFormat[i], colors[i]);
     return text + (!cont && "\x1b[0m" || "");
 }
 
