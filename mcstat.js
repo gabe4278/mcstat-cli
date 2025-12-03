@@ -169,7 +169,7 @@ for (const i in args) {
 				overrideHost = value;
 			}
 			else if (flag == "r") {
-				let value = process.argv[index + 1];
+				let value = process.argv[i + 1];
 				if (!value) {
 					console.error("-r: requires parameter");
 					console.error("Try 'mcstat --help' for more information.");
