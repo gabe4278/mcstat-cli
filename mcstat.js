@@ -169,7 +169,7 @@ for (const i in args) {
 				overrideHost = value;
 			}
 			else if (flag == "r") {
-				let value = process.argv[i + 1];
+				let value = process.argv[parseInt(i) + 1];
 				if (!value) {
 					console.error("-r: requires parameter");
 					console.error("Try 'mcstat --help' for more information.");
@@ -402,10 +402,14 @@ else {
 						console.log(`Mod Type: ${status.modinfo.type}`);
 						console.log(`Active mods (${status.modinfo.modList.length}): ${status.modinfo.modList.map(mod => `${mod.modid} ${mod.version}`).join(", ")}`);
 					}
+					if (status.forgeData) {
+						console.log(`FML Network Version: ${status.forgeData.fmlNetworkVersion}`);
+						console.log(`Channels (${status.forgeData.channels.length}): ${status.forgeData.channels.map(channel => `${channel.res} ${channel.version}${channel.required && " (required)" || ""}`).join(", ")}`);
+						console.log(`Active mods (${status.forgeData.mods.length}): ${status.forgeData.mods.map(mod => `${mod.modId} ${mod.modmarker}`).join(", ")}`);
+					}
 					console.log(`Version: ${mccolors(status.version.name)} (Protocol version ${status.version.protocol})`);
 					console.log(`MOTD:`);
 					console.log(parseExtra(status.description));
-					//require("fs").writeFileSync("favicon.png", Buffer.from(status.favicon.split(",")[1], "base64"));
 					let ping = new Packet();
 					ping.writeVarInt(0x01);
 					beforePing = Date.now();
