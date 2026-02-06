@@ -390,7 +390,8 @@ else {
 					if (status.preventsChatReports) {
 						if (verbose) console.log("* NoChatReports plugin installed or ways to prevent chat message reporting on server");
 					}
-					console.log(`Players online: ${status.players.online}/${status.players.max}`);
+					if (status.players)	console.log(`Players online: ${status.players.online}/${status.players.max}`);
+					else console.log("Players online: ???");
 					if (status.players.sample?.length > 0) {
 						console.log("Sample players:");
 						let samplePlayers = [];
