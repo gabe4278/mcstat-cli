@@ -392,7 +392,7 @@ else {
 					}
 					if (status.players)	console.log(`Players online: ${status.players.online}/${status.players.max}`);
 					else console.log("Players online: ???");
-					if (status.players.sample?.length > 0) {
+					if (status.players?.sample?.length > 0) {
 						console.log("Sample players:");
 						let samplePlayers = [];
 						for (let i in status.players.sample) samplePlayers.push(mccolors(status.players.sample[i].name));
