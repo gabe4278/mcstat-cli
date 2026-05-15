@@ -226,233 +226,235 @@ var hasFullData = false;
 
 var serverAddress = addr[0];
 
-if (bedrock) {
-	if (overrideHost && verbose) console.warn(`Statting a bedrock server, option '--serverhost' will be omitted`);
-	if (overridePort && verbose) console.warn(`Statting a bedrock server, option '--serverport' will be omitted`);
-	var serverPort = parseInt(addr[1] ?? 19132);
-	dns.lookup(serverAddress, async (err, addr, family) => {
-		if (!err) {
-			if (verbose) {
-				if (family == 6) console.log(`* Trying [${addr}]:${serverPort}...`);
-				else console.log(`* Trying ${addr}:${serverPort}...`);
-			}
-			let socket = dgram.createSocket(`udp${family}`);
-			if (verbose) console.log(`* Using UDP version ${family}`);
-			socket.connect(serverPort, addr);
-
-			socket.on("connect", () => {
-				let now = Date.now();
-				let clientGUID = crypto.randomBytes(8).readBigInt64BE();
-				let unconnectedPing = new Packet();
-				unconnectedPing.writeByte(1);
-				unconnectedPing.writeLongBE(BigInt(now));
-				unconnectedPing.writeBuffer(magicBytes);
-				unconnectedPing.writeLongBE(clientGUID);
+(async () => {
+	if (bedrock) {
+		if (overrideHost && verbose) console.warn(`Statting a bedrock server, option '--serverhost' will be omitted`);
+		if (overridePort && verbose) console.warn(`Statting a bedrock server, option '--serverport' will be omitted`);
+		var serverPort = parseInt(addr[1] ?? 19132);
+		dns.lookup(serverAddress, (err, addr, family) => {
+			if (!err) {
 				if (verbose) {
-					console.log("* Sending unconnected ping packet:");
-					console.log("< Packet ID: 1");
-					console.log(`< Time: ${now}`);
-					console.log(`< Magic: ${magicBytes.toString("hex")}`);
-					console.log(`< Client GUID: ${parseInt(clientGUID)}`);
+					if (family == 6) console.log(`* Trying [${addr}]:${serverPort}...`);
+					else console.log(`* Trying ${addr}:${serverPort}...`);
 				}
-				socket.send(unconnectedPing.buffer);
+				let socket = dgram.createSocket(`udp${family}`);
+				if (verbose) console.log(`* Using UDP version ${family}`);
+				socket.connect(serverPort, addr);
 
-				socket.on("message", (message, recv) => {
-					if (recv.address == addr) {
-						let packet = new Packet();
-						packet.buffer = message;
-						let packetId = packet.readByte();
-						if (packetId == 0x1c) {
-							let time = packet.readLongBE();
-							let serverGUID = packet.readLongBE();
-							let magic = packet.readBuffer(16);
-							if (magic.equals(magicBytes)) {
-								if (verbose) {
-									console.log("* Response data:");
-									console.log("> Packet ID: 28");
-									console.log(`> Time: ${parseInt(time)}`);
-									console.log(`> Server GUID: ${parseInt(serverGUID)}`);
-									console.log(`> Magic: ${magicBytes.toString("hex")}`);
-									console.log("> Response data:");
+				socket.on("connect", () => {
+					let now = Date.now();
+					let clientGUID = crypto.randomBytes(8).readBigInt64BE();
+					let unconnectedPing = new Packet();
+					unconnectedPing.writeByte(1);
+					unconnectedPing.writeLongBE(BigInt(now));
+					unconnectedPing.writeBuffer(magicBytes);
+					unconnectedPing.writeLongBE(clientGUID);
+					if (verbose) {
+						console.log("* Sending unconnected ping packet:");
+						console.log("< Packet ID: 1");
+						console.log(`< Time: ${now}`);
+						console.log(`< Magic: ${magicBytes.toString("hex")}`);
+						console.log(`< Client GUID: ${parseInt(clientGUID)}`);
+					}
+					socket.send(unconnectedPing.buffer);
+
+					socket.on("message", (message, recv) => {
+						if (recv.address == addr) {
+							let packet = new Packet();
+							packet.buffer = message;
+							let packetId = packet.readByte();
+							if (packetId == 0x1c) {
+								let time = packet.readLongBE();
+								let serverGUID = packet.readLongBE();
+								let magic = packet.readBuffer(16);
+								if (magic.equals(magicBytes)) {
+									if (verbose) {
+										console.log("* Response data:");
+										console.log("> Packet ID: 28");
+										console.log(`> Time: ${parseInt(time)}`);
+										console.log(`> Server GUID: ${parseInt(serverGUID)}`);
+										console.log(`> Magic: ${magicBytes.toString("hex")}`);
+										console.log("> Response data:");
+									}
+									let serverInfoLen = packet.readUShortBE();
+									let serverInfo = packet.readBuffer(serverInfoLen).toString().split(";");
+									console.log(`Server type: ${serverInfo[0]}`);
+									console.log(`Players online: ${serverInfo[4]}/${serverInfo[5]}`);
+									console.log(`Version: ${serverInfo[3]} (protocol version: ${serverInfo[2]})`);
+									console.log(`Game Mode: ${serverInfo[8]}`);
+									console.log("MOTD:");
+									console.log(mccolors(serverInfo[1], false, true));
+									console.log("World Name:");
+									console.log(mccolors(serverInfo[7], false, true));
+									console.log(`Ping: ${Date.now() - now} ms`)
+									if (verbose) console.log("* Closing connection");
+									socket.close();
+									clearTimeout(connectionTimeout);
 								}
-								let serverInfoLen = packet.readUShortBE();
-								let serverInfo = packet.readBuffer(serverInfoLen).toString().split(";");
-								console.log(`Server type: ${serverInfo[0]}`);
-								console.log(`Players online: ${serverInfo[4]}/${serverInfo[5]}`);
-								console.log(`Version: ${serverInfo[3]} (protocol version: ${serverInfo[2]})`);
-								console.log(`Game Mode: ${serverInfo[8]}`);
-								console.log("MOTD:");
-								console.log(mccolors(serverInfo[1], false, true));
-								console.log("World Name:");
-								console.log(mccolors(serverInfo[7], false, true));
-								console.log(`Ping: ${Date.now() - now} ms`)
-								if (verbose) console.log("* Closing connection");
-								socket.close();
-								clearTimeout(connectionTimeout);
 							}
 						}
+					});
+				});
+
+				socket.on("error", handleError);
+
+				let connectionTimeout = setTimeout(() => {
+					if (verbose) console.log("* Closing connection");
+					socket.close();
+					handleError({code: "ETIMEDOUT"});
+				}, 10000);
+			}
+			else {
+				handleError(err);
+			}
+		});
+	}
+	else {
+		var serverPort = parseInt(addr[1] ?? 25565);
+		if (verbose && await BlockedServerManager.isBlocked(serverAddress)) {
+			console.log("* This server has been blocked by Mojang due to EULA violations");
+		}
+		dns.resolveSrv(`_minecraft._tcp.${serverAddress}`, (err, addrs) => {
+			var conn;
+			if (!err && addrs[0]) {
+				serverAddress = addrs[0].name;
+				serverPort = addrs[0].port;
+			}
+
+			if (verbose) {
+				if (net.isIPv6(serverAddress)) console.log(`* Trying [${serverAddress}]:${serverPort}...`);
+				else console.log(`* Trying ${serverAddress}:${serverPort}...`);
+				dns.lookup(serverAddress, (err, addr, family) => {
+					if (addr == serverAddress) return;
+					if (!err) {
+						if (family == 6) console.log(`* Trying [${addr}]:${serverPort}...`);
+						else console.log(`* Trying ${addr}:${serverPort}...`);
+					}
+				});
+			}
+
+			conn = net.createConnection({
+				host: serverAddress,
+				port: serverPort
+			});
+
+			conn.setTimeout(30000, () => {
+				if (verbose) console.log("* Closing connection");
+				console.error(`Could not stat ${serverAddress}:${serverPort}: Timed out`);
+				conn.end();
+				process.exit();
+			});
+
+			const socket = new NetSocket(conn);
+
+			socket.on("error", handleError);
+
+			socket.on("connect", () => {
+				if (verbose) console.log("* Connected to server.");
+				let hs = new Packet();
+				hs.writeVarInt(0x00);
+				hs.writeVarInt(protocolVersion);
+				hs.writeString(overrideHost ?? addr[0].toLowerCase());
+				hs.writeUShortBE(overridePort ?? parseInt(addr[1] ?? 25565));
+				hs.writeVarInt(1);
+				if (verbose) {
+					console.log("* Sending handshake packet:");
+					console.log("< Packet ID: 0");
+					console.log("< Protocol Version: " + protocolVersion);
+					console.log("< Server Address: " + (overrideHost ?? addr[0].toLowerCase()));
+					console.log("< Server Port: " + (overridePort ?? parseInt(addr[1] ?? 25565)));
+					console.log("< Next State: 1");
+				}
+
+				socket.sendPacket(hs);
+
+				let status = new Packet();
+				status.writeVarInt(0x00);
+
+				if (verbose) {
+					console.log("* Sending status request packet:");
+					console.log("< Packet ID: 0");
+				}
+
+				socket.sendPacket(status);
+
+				var beforePing;
+
+				socket.on("packet", packet => {
+					let packetId = packet.readVarInt();
+					if (packetId == 0x00) {
+						if (verbose) {
+							console.log("* Received status response packet:");
+							console.log("> Packet ID: 0");
+							console.log("> Response data:");
+						}
+						let status = JSON.parse(packet.readString());
+						if (verbose && status.enforcesSecureChat) {
+							console.log("* Secure chat is enforced for chat messages to be signed");
+						}
+						if (verbose && status.preventsChatReports) {
+							console.log("* NoChatReports plugin installed or ways to prevent chat message reporting on server");
+						}
+						if (status.players) console.log(`Players online: ${status.players.online}/${status.players.max}`);
+						else console.log("Players online: ???");
+						if (status.players?.sample?.length > 0) {
+							console.log("Sample players:");
+							let samplePlayers = [];
+							for (let i in status.players.sample) samplePlayers.push(mccolors(status.players.sample[i].name));
+							console.log(samplePlayers.join("\n"));
+							if (status.players.online - status.players.sample.length > 0) console.log(`... and ${status.players.online - status.players.sample.length} more ...`);
+						}
+						if (status.modinfo) {
+							console.log(`Mod Type: ${status.modinfo.type}`);
+							console.log(`Active mods (${status.modinfo.modList.length}): ${status.modinfo.modList.map(mod => `${mod.modid} ${mod.version}`).join(", ")}`);
+						}
+						if (status.forgeData) {
+							console.log(`FML Network Version: ${status.forgeData.fmlNetworkVersion}`);
+							console.log(`Channels (${status.forgeData.channels.length}): ${status.forgeData.channels.map(channel => `${channel.res} ${channel.version}${channel.required && " (required)" || ""}`).join(", ")}`);
+							console.log(`Active mods (${status.forgeData.mods.length}): ${status.forgeData.mods.map(mod => `${mod.modId} ${mod.modmarker}`).join(", ")}`);
+						}
+						console.log(`Version: ${mccolors(status.version.name)} (Protocol version ${status.version.protocol})`);
+						console.log(`MOTD:`);
+						console.log(parseExtra(status.description));
+						let ping = new Packet();
+						ping.writeVarInt(0x01);
+						beforePing = Date.now();
+						ping.writeLongBE(BigInt(beforePing));
+						if (verbose) {
+							console.log("* Sending ping packet:");
+							console.log("< Packet ID: 1");
+							console.log("< Time: " + beforePing);
+						}
+						socket.sendPacket(ping);
+						hasData = true;
+					}
+					else if (packetId == 0x01) {
+						let time = packet.readLongBE();
+						if (verbose) {
+							console.log("* Received pong packet:");
+							console.log("> Packet ID: 1");
+							console.log("> Time: " + parseInt(time));
+						}
+						console.log(`Ping: ${Date.now() - beforePing} ms`);
+						if (verbose) console.log("* Closing connection");
+						socket.end();
+						hasFullData = true;
+					}
+					else {
+						if (hasFullData) {
+							if (verbose) console.log(`* Read ${packet.buffer.byteLength} bytes extra from status`);
+							return;
+						};
+						if (verbose) console.log("* Could not understand packet id " + packetId);
+						throw new Error(`Bad packet id ${packetId}`);
 					}
 				});
 			});
 
-			socket.on("error", handleError);
-
-			let connectionTimeout = setTimeout(() => {
-				if (verbose) console.log("* Closing connection");
-				socket.close();
-				handleError({code: "ETIMEDOUT"});
-			}, 10000);
-		}
-		else {
-			handleError(err);
-		}
-	});
-}
-else {
-	var serverPort = parseInt(addr[1] ?? 25565);
-	if (verbose && await BlockedServerManager.isBlocked(serverAddress)) {
-		console.log("* This server has been blocked by Mojang due to EULA violations");
+			socket.on("end", () => {
+				if (verbose && hasData) console.log(`* Connection to ${serverAddress}:${serverPort} left intact`);
+				if (!hasData) console.error(`Could not stat ${serverAddress}:${serverPort}: No data response from server`);
+			});
+		});
 	}
-	dns.resolveSrv(`_minecraft._tcp.${serverAddress}`, (err, addrs) => {
-		var conn;
-		if (!err && addrs[0]) {
-			serverAddress = addrs[0].name;
-			serverPort = addrs[0].port;
-		}
-
-		if (verbose) {
-			if (net.isIPv6(serverAddress)) console.log(`* Trying [${serverAddress}]:${serverPort}...`);
-			else console.log(`* Trying ${serverAddress}:${serverPort}...`);
-			dns.lookup(serverAddress, (err, addr, family) => {
-				if (addr == serverAddress) return;
-				if (!err) {
-					if (family == 6) console.log(`* Trying [${addr}]:${serverPort}...`);
-					else console.log(`* Trying ${addr}:${serverPort}...`);
-				}
-			});
-		}
-
-		conn = net.createConnection({
-			host: serverAddress,
-			port: serverPort
-		});
-
-		conn.setTimeout(30000, () => {
-			if (verbose) console.log("* Closing connection");
-			console.error(`Could not stat ${serverAddress}:${serverPort}: Timed out`);
-			conn.end();
-			process.exit();
-		});
-
-		const socket = new NetSocket(conn);
-
-		socket.on("error", handleError);
-
-		socket.on("connect", () => {
-			if (verbose) console.log("* Connected to server.");
-			let hs = new Packet();
-			hs.writeVarInt(0x00);
-			hs.writeVarInt(protocolVersion);
-			hs.writeString(overrideHost ?? addr[0].toLowerCase());
-			hs.writeUShortBE(overridePort ?? parseInt(addr[1] ?? 25565));
-			hs.writeVarInt(1);
-			if (verbose) {
-				console.log("* Sending handshake packet:");
-				console.log("< Packet ID: 0");
-				console.log("< Protocol Version: " + protocolVersion);
-				console.log("< Server Address: " + (overrideHost ?? addr[0].toLowerCase()));
-				console.log("< Server Port: " + (overridePort ?? parseInt(addr[1] ?? 25565)));
-				console.log("< Next State: 1");
-			}
-
-			socket.sendPacket(hs);
-
-			let status = new Packet();
-			status.writeVarInt(0x00);
-
-			if (verbose) {
-				console.log("* Sending status request packet:");
-				console.log("< Packet ID: 0");
-			}
-
-			socket.sendPacket(status);
-
-			var beforePing;
-
-			socket.on("packet", packet => {
-				let packetId = packet.readVarInt();
-				if (packetId == 0x00) {
-					if (verbose) {
-						console.log("* Received status response packet:");
-						console.log("> Packet ID: 0");
-						console.log("> Response data:");
-					}
-					let status = JSON.parse(packet.readString());
-					if (verbose && status.enforcesSecureChat) {
-						console.log("* Secure chat is enforced for chat messages to be signed");
-					}
-					if (verbose && status.preventsChatReports) {
-						console.log("* NoChatReports plugin installed or ways to prevent chat message reporting on server");
-					}
-					if (status.players) console.log(`Players online: ${status.players.online}/${status.players.max}`);
-					else console.log("Players online: ???");
-					if (status.players?.sample?.length > 0) {
-						console.log("Sample players:");
-						let samplePlayers = [];
-						for (let i in status.players.sample) samplePlayers.push(mccolors(status.players.sample[i].name));
-						console.log(samplePlayers.join("\n"));
-						if (status.players.online - status.players.sample.length > 0) console.log(`... and ${status.players.online - status.players.sample.length} more ...`);
-					}
-					if (status.modinfo) {
-						console.log(`Mod Type: ${status.modinfo.type}`);
-						console.log(`Active mods (${status.modinfo.modList.length}): ${status.modinfo.modList.map(mod => `${mod.modid} ${mod.version}`).join(", ")}`);
-					}
-					if (status.forgeData) {
-						console.log(`FML Network Version: ${status.forgeData.fmlNetworkVersion}`);
-						console.log(`Channels (${status.forgeData.channels.length}): ${status.forgeData.channels.map(channel => `${channel.res} ${channel.version}${channel.required && " (required)" || ""}`).join(", ")}`);
-						console.log(`Active mods (${status.forgeData.mods.length}): ${status.forgeData.mods.map(mod => `${mod.modId} ${mod.modmarker}`).join(", ")}`);
-					}
-					console.log(`Version: ${mccolors(status.version.name)} (Protocol version ${status.version.protocol})`);
-					console.log(`MOTD:`);
-					console.log(parseExtra(status.description));
-					let ping = new Packet();
-					ping.writeVarInt(0x01);
-					beforePing = Date.now();
-					ping.writeLongBE(BigInt(beforePing));
-					if (verbose) {
-						console.log("* Sending ping packet:");
-						console.log("< Packet ID: 1");
-						console.log("< Time: " + beforePing);
-					}
-					socket.sendPacket(ping);
-					hasData = true;
-				}
-				else if (packetId == 0x01) {
-					let time = packet.readLongBE();
-					if (verbose) {
-						console.log("* Received pong packet:");
-						console.log("> Packet ID: 1");
-						console.log("> Time: " + parseInt(time));
-					}
-					console.log(`Ping: ${Date.now() - beforePing} ms`);
-					if (verbose) console.log("* Closing connection");
-					socket.end();
-					hasFullData = true;
-				}
-				else {
-					if (hasFullData) {
-						if (verbose) console.log(`* Read ${packet.buffer.byteLength} bytes extra from status`);
-						return;
-					};
-					if (verbose) console.log("* Could not understand packet id " + packetId);
-					throw new Error(`Bad packet id ${packetId}`);
-				}
-			});
-		});
-
-		socket.on("end", () => {
-			if (verbose && hasData) console.log(`* Connection to ${serverAddress}:${serverPort} left intact`);
-			if (!hasData) console.error(`Could not stat ${serverAddress}:${serverPort}: No data response from server`);
-		});
-	});
-}
+})();
