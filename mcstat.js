@@ -62,7 +62,7 @@ function removeItemFromArray(a, item) {
 
 var helpFlag = false;
 
-var protocolVersion = 773;
+var protocolVersion = 775;
 var overrideHost;
 var overridePort;
 
