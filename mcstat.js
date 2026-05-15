@@ -230,7 +230,7 @@ if (bedrock) {
 	if (overrideHost && verbose) console.warn(`Statting a bedrock server, option '--serverhost' will be omitted`);
 	if (overridePort && verbose) console.warn(`Statting a bedrock server, option '--serverport' will be omitted`);
 	var serverPort = parseInt(addr[1] ?? 19132);
-	dns.lookup(serverAddress, (err, addr, family) => {
+	dns.lookup(serverAddress, async (err, addr, family) => {
 		if (!err) {
 			if (verbose) {
 				if (family == 6) console.log(`* Trying [${addr}]:${serverPort}...`);
@@ -310,7 +310,7 @@ if (bedrock) {
 }
 else {
 	var serverPort = parseInt(addr[1] ?? 25565);
-	if (verbose && BlockedServerManager.isBlocked(serverAddress)) {
+	if (verbose && await BlockedServerManager.isBlocked(serverAddress)) {
 		console.log("* This server has been blocked by Mojang due to EULA violations");
 	}
 	dns.resolveSrv(`_minecraft._tcp.${serverAddress}`, (err, addrs) => {
