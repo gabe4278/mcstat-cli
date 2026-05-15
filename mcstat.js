@@ -7,6 +7,7 @@ const crypto = require("crypto");
 const dns = require("dns");
 const parseExtra = require("./chatParser");
 const mccolors = require("./mccolors");
+const BlockedServerManager = require("./BlockedServerManager");
 
 const magicBytes = Buffer.from("00ffff00fefefefefdfdfdfd12345678", "hex");
 
@@ -309,7 +310,10 @@ if (bedrock) {
 }
 else {
 	var serverPort = parseInt(addr[1] ?? 25565);
-	dns.resolveSrv(`_minecraft._tcp.${addr[0]}`, (err, addrs) => {
+	if (verbose && BlockedServerManager.isBlocked(serverAddress)) {
+		console.log("* This server has been blocked by Mojang due to EULA violations");
+	}
+	dns.resolveSrv(`_minecraft._tcp.${serverAddress}`, (err, addrs) => {
 		var conn;
 		if (!err && addrs[0]) {
 			serverAddress = addrs[0].name;
@@ -384,13 +388,13 @@ else {
 						console.log("> Response data:");
 					}
 					let status = JSON.parse(packet.readString());
-					if (status.enforcesSecureChat) {
-						if (verbose) console.log("* Secure chat is enforced for chat messages to be signed");
+					if (verbose && status.enforcesSecureChat) {
+						console.log("* Secure chat is enforced for chat messages to be signed");
 					}
-					if (status.preventsChatReports) {
-						if (verbose) console.log("* NoChatReports plugin installed or ways to prevent chat message reporting on server");
+					if (verbose && status.preventsChatReports) {
+						console.log("* NoChatReports plugin installed or ways to prevent chat message reporting on server");
 					}
-					if (status.players)	console.log(`Players online: ${status.players.online}/${status.players.max}`);
+					if (status.players) console.log(`Players online: ${status.players.online}/${status.players.max}`);
 					else console.log("Players online: ???");
 					if (status.players?.sample?.length > 0) {
 						console.log("Sample players:");
