@@ -13,220 +13,220 @@ const magicBytes = Buffer.from("00ffff00fefefefefdfdfdfd12345678", "hex");
 
 var verbose = false;
 
-function handleError(err) {
-	if (err.syscall == "getaddrinfo") console.error(`Could not stat ${serverAddress}:${serverPort}: Unknown host`);
-	else {
-		switch (err.code) {
-			case "ECONNREFUSED":
-				console.error(`Could not stat ${serverAddress}:${serverPort}: Connection refused`);
-			break;
-
-			case "ETIMEDOUT":
-				console.error(`Could not stat ${serverAddress}:${serverPort}: Timed out`);
-			break;
-
-			case "ENETUNREACH":
-				console.error(`Could not stat ${serverAddress}:${serverPort}: Network is unreachable`);
-			break;
-
-			case "EHOSTUNREACH":
-				console.error(`Could not stat ${serverAddress}:${serverPort}: Host is unreachable`);
-			break;
-
-			default:
-				console.error(`Could not stat ${serverAddress}:${serverPort}: ${err.code}`);
-		}
-	}
-	process.exit();
-}
-
-function removeArray(a, item) {
-	let m = [];
-	for (let i in a) {
-		if (a[i] !== item) {
-			m.push(a[i]);
-		}
-	}
-	return m;
-}
-
-function removeItemFromArray(a, item) {
-	let m = [];
-	for (let i in a) {
-		if (i !== item) {
-			m.push(a[i]);
-		}
-	}
-	return m;
-}
-
-var helpFlag = false;
-
-var protocolVersion = 775;
-var overrideHost;
-var overridePort;
-
-var bedrock = false;
-
-if (process.argv.includes("--verbose")) {
-	process.argv = removeArray(process.argv, "--verbose");
-	verbose = true;
-}
-
-if (process.argv.includes("--bedrock")) {
-	process.argv = removeArray(process.argv, "--bedrock");
-	bedrock = true;
-}
-
-if (process.argv.includes("--serverhost")) {
-	let index = process.argv.findIndex(i => i == "--serverhost");
-	let value = process.argv[index + 1];
-	if (!value) {
-		console.error("--serverhost: requires parameter");
-		console.error("Try 'mcstat --help' for more information.");
-		process.exit(-1);
-	}
-	overrideHost = value;
-	process.argv = removeArray(process.argv, "--serverhost");
-	process.argv = removeItemFromArray(process.argv, index.toString());
-}
-
-if (process.argv.includes("--serverport")) {
-	let index = process.argv.findIndex(i => i == "--serverport");
-	let value = process.argv[index + 1];
-	if (!value) {
-		console.error("--serverport: requires parameter");
-		console.error("Try 'mcstat --help' for more information.");
-		process.exit(-1);
-	}
-	if (parseInt(value) > 65535 || parseInt(value) < 0) {
-		console.error("--serverport: value out of range");
-		console.error("Try 'mcstat --help' for more information.");
-		process.exit(-1);
-	}
-	overridePort = parseInt(value);
-	process.argv = removeArray(process.argv, "--serverport");
-	process.argv = removeItemFromArray(process.argv, index.toString());
-}
-
-if (process.argv.includes("--protocolversion")) {
-	let index = process.argv.findIndex(i => i == "--protocolversion");
-	let value = process.argv[index + 1];
-	if (!value) {
-		console.error("--protocolversion: requires parameter");
-		console.error("Try 'mcstat --help' for more information.");
-		process.exit(-1);
-	}
-	if (parseInt(value) < -2147483648 || parseInt(value) > 2147483647) {
-		console.error("--protocolversion: value out of range");
-		console.error("Try 'mcstat --help' for more information.");
-		process.exit(-1);
-	}
-	protocolVersion = parseInt(value);
-	process.argv = removeArray(process.argv, "-protocolversion");
-	process.argv = removeItemFromArray(process.argv, index.toString());
-}
-
-if (process.argv.includes("--help")) {
-	process.argv = removeArray(process.argv, "--help");
-	helpFlag = true;
-}
-
-let args = process.argv;
-for (const i in args) {
-	let arg = args[i];
-	if (!arg) continue;
-	if (arg.startsWith("--")) process.argv[i] = null;
-	if (arg.startsWith('-')) {
-		const flags = arg.slice(1);
-
-		for (const flag of flags) {
-			if (flag === 'v') verbose = true;
-			else if (flag === 'b') bedrock = true;
-			else if (flag === 'h') helpFlag = true;
-			else if (flag == "p") {
-				let value = args[parseInt(i) + 1];
-				if (!value) {
-					console.error("-p: requires parameter");
-					console.error("Try 'mcstat --help' for more information.");
-					process.exit(-1);
-				}
-				if (parseInt(value) > 65535 || parseInt(value) < 0) {
-					console.error("-p: value out of range");
-					console.error("Try 'mcstat --help' for more information.");
-					process.exit(-1);
-				}
-				process.argv[parseInt(i) + 1] = null;
-				overridePort = parseInt(value);
-			}
-			else if (flag == "s") {
-				let value = process.argv[parseInt(i) + 1];
-				if (!value) {
-					console.error("-s: requires parameter");
-					console.error("Try 'mcstat --help' for more information.");
-					process.exit(-1);
-				}
-				process.argv[parseInt(i) + 1] = null;
-				overrideHost = value;
-			}
-			else if (flag == "r") {
-				let value = process.argv[parseInt(i) + 1];
-				if (!value) {
-					console.error("-r: requires parameter");
-					console.error("Try 'mcstat --help' for more information.");
-					process.exit(-1);
-				}
-				if (parseInt(value) < -2147483648 || parseInt(value) > 2147483647) {
-					console.error("-r: value out of range");
-					console.error("Try 'mcstat --help' for more information.");
-					process.exit(-1);
-				}
-				process.argv[parseInt(i) + 1] = null;
-				protocolVersion = parseInt(value);
-			}
-		}
-		process.argv[i] = null;
-	}
-}
-
-// clean up null items and refresh cli arguments after parsing
-let newArgs = [];
-for (let arg of process.argv) {
-	if (arg !== null) newArgs.push(arg);
-}
-process.argv = newArgs;
-
-if (helpFlag) {
-	console.log(`Usage: mcstat [options] <address>[:<port>]`);
-	console.log("");
-	console.log(`Options:`);
-	console.log("-b | --bedrock - Ping a bedrock server");
-	console.log("-s | --serverhost <string> - override server host");
-	console.log("-p | --serverport <number> - override server port");
-	console.log("-r | --protocolversion <number> - set protocol version");
-	console.log("-v | --verbose - verbose log output");
-	console.log("-h | --help - shows help");
-	process.exit(1);
-}
-
-if (!process.argv[2]) {
-	console.error("No server address specified");
-	console.log("Try 'mcstat --help' for more information.");
-	process.exit(-1);
-}
-
-let servaddress = process.argv[2];
-let addr;
-let ipv6 = servaddress.match(/\[(.*)\]:?([0-9]+)?/);
-if (ipv6) addr = [ipv6[1], ipv6[2]];
-else addr = servaddress.split(":");
-
-var hasData = false;
-var hasFullData = false;
-
-var serverAddress = addr[0];
-
 (async () => {
+	function handleError(err) {
+		if (err.syscall == "getaddrinfo") console.error(`Could not stat ${serverAddress}:${serverPort}: Unknown host`);
+		else {
+			switch (err.code) {
+				case "ECONNREFUSED":
+					console.error(`Could not stat ${serverAddress}:${serverPort}: Connection refused`);
+				break;
+
+				case "ETIMEDOUT":
+					console.error(`Could not stat ${serverAddress}:${serverPort}: Timed out`);
+				break;
+
+				case "ENETUNREACH":
+					console.error(`Could not stat ${serverAddress}:${serverPort}: Network is unreachable`);
+				break;
+
+				case "EHOSTUNREACH":
+					console.error(`Could not stat ${serverAddress}:${serverPort}: Host is unreachable`);
+				break;
+
+				default:
+					console.error(`Could not stat ${serverAddress}:${serverPort}: ${err.code}`);
+			}
+		}
+		process.exit();
+	}
+
+	function removeArray(a, item) {
+		let m = [];
+		for (let i in a) {
+			if (a[i] !== item) {
+				m.push(a[i]);
+			}
+		}
+		return m;
+	}
+
+	function removeItemFromArray(a, item) {
+		let m = [];
+		for (let i in a) {
+			if (i !== item) {
+				m.push(a[i]);
+			}
+		}
+		return m;
+	}
+
+	var helpFlag = false;
+
+	var protocolVersion = 775;
+	var overrideHost;
+	var overridePort;
+
+	var bedrock = false;
+
+	if (process.argv.includes("--verbose")) {
+		process.argv = removeArray(process.argv, "--verbose");
+		verbose = true;
+	}
+
+	if (process.argv.includes("--bedrock")) {
+		process.argv = removeArray(process.argv, "--bedrock");
+		bedrock = true;
+	}
+
+	if (process.argv.includes("--serverhost")) {
+		let index = process.argv.findIndex(i => i == "--serverhost");
+		let value = process.argv[index + 1];
+		if (!value) {
+			console.error("--serverhost: requires parameter");
+			console.error("Try 'mcstat --help' for more information.");
+			process.exit(-1);
+		}
+		overrideHost = value;
+		process.argv = removeArray(process.argv, "--serverhost");
+		process.argv = removeItemFromArray(process.argv, index.toString());
+	}
+
+	if (process.argv.includes("--serverport")) {
+		let index = process.argv.findIndex(i => i == "--serverport");
+		let value = process.argv[index + 1];
+		if (!value) {
+			console.error("--serverport: requires parameter");
+			console.error("Try 'mcstat --help' for more information.");
+			process.exit(-1);
+		}
+		if (parseInt(value) > 65535 || parseInt(value) < 0) {
+			console.error("--serverport: value out of range");
+			console.error("Try 'mcstat --help' for more information.");
+			process.exit(-1);
+		}
+		overridePort = parseInt(value);
+		process.argv = removeArray(process.argv, "--serverport");
+		process.argv = removeItemFromArray(process.argv, index.toString());
+	}
+
+	if (process.argv.includes("--protocolversion")) {
+		let index = process.argv.findIndex(i => i == "--protocolversion");
+		let value = process.argv[index + 1];
+		if (!value) {
+			console.error("--protocolversion: requires parameter");
+			console.error("Try 'mcstat --help' for more information.");
+			process.exit(-1);
+		}
+		if (parseInt(value) < -2147483648 || parseInt(value) > 2147483647) {
+			console.error("--protocolversion: value out of range");
+			console.error("Try 'mcstat --help' for more information.");
+			process.exit(-1);
+		}
+		protocolVersion = parseInt(value);
+		process.argv = removeArray(process.argv, "-protocolversion");
+		process.argv = removeItemFromArray(process.argv, index.toString());
+	}
+
+	if (process.argv.includes("--help")) {
+		process.argv = removeArray(process.argv, "--help");
+		helpFlag = true;
+	}
+
+	let args = process.argv;
+	for (const i in args) {
+		let arg = args[i];
+		if (!arg) continue;
+		if (arg.startsWith("--")) process.argv[i] = null;
+		if (arg.startsWith('-')) {
+			const flags = arg.slice(1);
+
+			for (const flag of flags) {
+				if (flag === 'v') verbose = true;
+				else if (flag === 'b') bedrock = true;
+				else if (flag === 'h') helpFlag = true;
+				else if (flag == "p") {
+					let value = args[parseInt(i) + 1];
+					if (!value) {
+						console.error("-p: requires parameter");
+						console.error("Try 'mcstat --help' for more information.");
+						process.exit(-1);
+					}
+					if (parseInt(value) > 65535 || parseInt(value) < 0) {
+						console.error("-p: value out of range");
+						console.error("Try 'mcstat --help' for more information.");
+						process.exit(-1);
+					}
+					process.argv[parseInt(i) + 1] = null;
+					overridePort = parseInt(value);
+				}
+				else if (flag == "s") {
+					let value = process.argv[parseInt(i) + 1];
+					if (!value) {
+						console.error("-s: requires parameter");
+						console.error("Try 'mcstat --help' for more information.");
+						process.exit(-1);
+					}
+					process.argv[parseInt(i) + 1] = null;
+					overrideHost = value;
+				}
+				else if (flag == "r") {
+					let value = process.argv[parseInt(i) + 1];
+					if (!value) {
+						console.error("-r: requires parameter");
+						console.error("Try 'mcstat --help' for more information.");
+						process.exit(-1);
+					}
+					if (parseInt(value) < -2147483648 || parseInt(value) > 2147483647) {
+						console.error("-r: value out of range");
+						console.error("Try 'mcstat --help' for more information.");
+						process.exit(-1);
+					}
+					process.argv[parseInt(i) + 1] = null;
+					protocolVersion = parseInt(value);
+				}
+			}
+			process.argv[i] = null;
+		}
+	}
+
+	// clean up null items and refresh cli arguments after parsing
+	let newArgs = [];
+	for (let arg of process.argv) {
+		if (arg !== null) newArgs.push(arg);
+	}
+	process.argv = newArgs;
+
+	if (helpFlag) {
+		console.log(`Usage: mcstat [options] <address>[:<port>]`);
+		console.log("");
+		console.log(`Options:`);
+		console.log("-b | --bedrock - Ping a bedrock server");
+		console.log("-s | --serverhost <string> - override server host");
+		console.log("-p | --serverport <number> - override server port");
+		console.log("-r | --protocolversion <number> - set protocol version");
+		console.log("-v | --verbose - verbose log output");
+		console.log("-h | --help - shows help");
+		process.exit(1);
+	}
+
+	if (!process.argv[2]) {
+		console.error("No server address specified");
+		console.log("Try 'mcstat --help' for more information.");
+		process.exit(-1);
+	}
+
+	let servaddress = process.argv[2];
+	let addr;
+	let ipv6 = servaddress.match(/\[(.*)\]:?([0-9]+)?/);
+	if (ipv6) addr = [ipv6[1], ipv6[2]];
+	else addr = servaddress.split(":");
+
+	var hasData = false;
+	var hasFullData = false;
+
+	var serverAddress = addr[0];
+
 	if (bedrock) {
 		if (overrideHost && verbose) console.warn(`Statting a bedrock server, option '--serverhost' will be omitted`);
 		if (overridePort && verbose) console.warn(`Statting a bedrock server, option '--serverport' will be omitted`);
