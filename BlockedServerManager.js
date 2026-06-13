@@ -3,6 +3,8 @@ const fs = require("fs");
 const crypto = require("crypto");
 const https = require("https");
 const net = require('net');
+const {tmpdir} = require("os");
+
 
 /**
  * Retrieves server blocklist from Mojang
@@ -11,11 +13,11 @@ const net = require('net');
  */
 function fetchBlockedServersList() {
     return new Promise((resolve, reject) => {
-        if (fs.existsSync(join(__dirname, "blockedservers.txt")) && (Date.now() - fs.statSync(join(__dirname, "blockedservers.txt")).mtime) < 300000) return resolve(fs.readFileSync(join(__dirname, "blockedservers.txt"), {encoding: "utf-8"})); // this avoids hammering the mojang API
+        if (fs.existsSync(join(tmpdir(), "blockedservers.txt")) && (Date.now() - fs.statSync(join(tmpdir(), "blockedservers.txt")).mtime) < 300000) return resolve(fs.readFileSync(join(tmpdir(), "blockedservers.txt"), {encoding: "utf-8"})); // this avoids hammering the mojang API
         https.get("https://sessionserver.mojang.com/blockedservers", res => {
-            res.pipe(fs.createWriteStream(join(__dirname, "blockedservers.txt")));
+            res.pipe(fs.createWriteStream(join(tmpdir(), "blockedservers.txt")));
 
-            res.on("end", () => resolve(fs.readFileSync(join(__dirname, "blockedservers.txt"), {encoding: "utf-8"})));
+            res.on("end", () => resolve(fs.readFileSync(join(tmpdir(), "blockedservers.txt"), {encoding: "utf-8"})));
 
             res.on("error", e => reject(e));
         }).on("error", e => reject(e));
