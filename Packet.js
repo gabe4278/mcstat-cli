@@ -46,11 +46,20 @@ class Packet {
 		var position = 0;
 		var currentByte;
 
-		while (true) {
-			currentByte = this.readUByte();
-			value |= (currentByte & this.bufferUtilConstants.SEGMENT_BITS) << position;
+		var tempBuffer = Buffer.alloc(0);
 
-			if ((currentByte & this.bufferUtilConstants.CONTINUE_BIT) == 0) break;
+		while (true) {
+			try {
+				currentByte = this.readUByte();
+				tempBuffer = Buffer.concat([tempBuffer, Buffer.from([currentByte])]);
+				value |= (currentByte & this.bufferUtilConstants.SEGMENT_BITS) << position;
+
+				if ((currentByte & this.bufferUtilConstants.CONTINUE_BIT) == 0) break;
+			}
+			catch (e) {
+				this.buffer = Buffer.concat([tempBuffer, this.buffer]);
+				throw e;
+			}
 
 			position += 7;
 

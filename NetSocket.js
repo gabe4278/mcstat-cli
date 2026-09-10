@@ -20,13 +20,14 @@ class NetSocket extends EventEmitter {
 		this.conn.on("error", err => this.emit("error", err));
 
 		this.conn.on("data", data => {
+		        try {
 			if (data) {
 				if (this.encryption) this.packet.buffer = Buffer.concat([this.packet.buffer, this.encryption.decryptPacket(data)]);
 				else this.packet.buffer = Buffer.concat([this.packet.buffer, data]);
 			}
 			if (!this.read) {
-				this.read = true;
 				this.packetLength = this.packet.readVarInt();
+				this.read = true;
 			}
 			if (this.packet.buffer.byteLength >= this.packetLength) {
 				let packet = new Packet();
@@ -42,6 +43,7 @@ class NetSocket extends EventEmitter {
 				this.packetLength = 0;
 				if (this.packet.buffer.length !== 0) this.conn.emit("data");
 			}
+			} catch {}
 		});
 
 		this.conn.on("end", () => {
