@@ -63,7 +63,7 @@ var verbose = false;
 
 	var helpFlag = false;
 
-	var protocolVersion = 775;
+	var protocolVersion = 777;
 	var overrideHost;
 	var overridePort;
 
